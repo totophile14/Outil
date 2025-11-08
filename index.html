@@ -75,7 +75,7 @@
           if(rounded>=1 && rounded<=30) valid=true;
           params={g,w};
         } else{
-          const d=randomDistance(), gis=randomGisement180();
+          const d=randomDistance(), incl=randomGisement180();
           raw = d*Math.sin(degToRad(incl));
           rounded = roundTo500(raw);
           valid=true;
@@ -152,4 +152,5 @@
   </script>
 </body>
 </html>
+
 
