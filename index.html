@@ -76,10 +76,10 @@
           params={g,w};
         } else{
           const d=randomDistance(), gis=randomGisement180();
-          raw = d*Math.sin(degToRad(gis));
+          raw = d*Math.sin(degToRad(incl));
           rounded = roundTo500(raw);
           valid=true;
-          params={d,gis};
+          params={d,incl};
         }
       }
 
@@ -97,8 +97,8 @@
         questionDiv.textContent = `g=${g}, w=${w}`;
       } else{
         typeLabel.textContent = "Distance à la route (arrondi à 500 m)";
-        const {d,gis}=params;
-        questionDiv.textContent = `d=${d}, gis=${gis}`;
+        const {d,incl}=params;
+        questionDiv.textContent = `d=${d}, incl=${incl}`;
       }
     }
 
@@ -139,10 +139,10 @@
         sin(${g})=${sinG.toFixed(6)}<br>
         Résultat exact=${current.rawAnswer.toFixed(6)}, arrondi=${current.roundedAnswer}`;
       } else{
-        const {d,gis}=current.params;
-        const sinG=Math.sin(degToRad(gis));
-        cDiv.innerHTML=`d=${d}, gis=${gis}<br>
-        sin(${gis})=${sinG.toFixed(6)}<br>
+        const {d,incl}=current.params;
+        const sinG=Math.sin(degToRad(incl));
+        cDiv.innerHTML=`d=${d}, incl=${incl}<br>
+        sin(${incl})=${sinG.toFixed(6)}<br>
         Résultat exact=${current.rawAnswer.toFixed(6)}, arrondi à 500 m=${current.roundedAnswer}`;
       }
     }
@@ -152,3 +152,4 @@
   </script>
 </body>
 </html>
+
