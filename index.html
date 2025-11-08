@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz de calcul mental (V=8nd)</title>
+  <title>Quiz de calcul mental</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,7 +26,7 @@
   </style>
 </head>
 <body>
-  <h1>Quiz de calcul mental (V=8nd)</h1>
+  <h1>Quiz de calcul mental</h1>
   <div class="type-label" id="type-label"></div>
   <div class="question" id="question"></div>
   <input type="number" id="answer" placeholder="Votre réponse"><br>
@@ -61,8 +61,8 @@
           const g1=randomGIS(), g2=randomGIS();
           let w1=randomW(), w2; do{ w2=randomW(); } while(w2===w1);
           const sin1=Math.sin(degToRad(g1)), sin2=Math.sin(degToRad(g2));
-          const numerator = FACTOR*(abs(sin2)+abs(sin1));
-          const denominator = abs(w2-w1);
+          const numerator = FACTOR*(Math.abs(sin1) + Math.abs(sin2));
+          const denominator = w2-w1;
           raw = numerator/denominator;
           rounded = Math.round(raw);
           if(rounded>=1 && rounded<=30) valid=true;
@@ -98,7 +98,7 @@
       } else{
         typeLabel.textContent = "Distance à la route (arrondi à 500 m)";
         const {d,gis}=params;
-        questionDiv.textContent = `d=${d}, incl=${gis}`;
+        questionDiv.textContent = `d=${d}, gis=${gis}`;
       }
     }
 
@@ -127,7 +127,7 @@
       if(current.type===1){
         const {g1,g2,w1,w2}=current.params;
         const sin1=Math.sin(degToRad(g1)), sin2=Math.sin(degToRad(g2));
-        const numerator = FACTOR*(sin2-sin1);
+        const numerator = FACTOR*(Math.abs(sin1) + Math.abs(sin2));
         const denominator = w2-w1;
         cDiv.innerHTML=`g1=${g1}, g2=${g2}, w1=${w1}, w2=${w2}<br>
         Numérateur=${numerator.toFixed(6)}, Dénominateur=${denominator}<br>
@@ -152,7 +152,3 @@
   </script>
 </body>
 </html>
-
-
-
-
