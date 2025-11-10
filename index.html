@@ -112,7 +112,7 @@
       const correct=current.roundedAnswer;
       let isCorrect=false;
       if(current.type===3){ isCorrect = (userAnswer===correct); }
-      else { isCorrect = (Math.abs(userAnswer-correct)<=1); }
+      else { isCorrect = (Math.abs(userAnswer-correct)<1); }
 
       resultDiv.style.color = isCorrect?"green":"red";
       resultDiv.textContent = isCorrect? `✅ Correct !` : `❌ Faux.`;
@@ -152,3 +152,4 @@
   </script>
 </body>
 </html>
+
