@@ -14,11 +14,12 @@
     h1 { color: #333; }
     .question { font-size: 1.3em; margin: 20px 0; }
     .type-label { font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
-    input[type="number"] { padding: 12px; font-size: 1.3em; width: 180px; text-align: center; margin-bottom: 12px; }
+    input[type="number"] { padding: 12px; font-size: 1.3em; width: 80px; text-align: center; margin-bottom: 12px; }
     button { padding: 12px 20px; font-size: 1.3em; margin: 10px; cursor: pointer; }
     .result { font-weight: bold; margin-top: 15px; font-size: 1.2em; }
     .correction { margin-top: 15px; text-align: left; display: inline-block; background: #fff; border: 1px solid #ddd; padding: 12px; max-width: 600px; line-height: 1.4; }
     .small { font-size: 0.95em; color: #555; }
+    #answer-container { margin-bottom: 12px; }
     @media (max-width: 600px) {
       .question { font-size: 1.5em; }
       input[type="number"], button { width: 90%; font-size: 1.4em; }
@@ -26,130 +27,260 @@
   </style>
 </head>
 <body>
-  <h1>Quiz de calcul mental</h1>
-  <div class="type-label" id="type-label"></div>
-  <div class="question" id="question"></div>
-  <input type="number" id="answer" placeholder="Votre réponse"><br>
-  <button onclick="checkAnswer()">Vérifier</button>
-  <button onclick="newQuestion()">Nouvelle question</button>
-  <button onclick="showCorrection()">Afficher correction</button>
-  <div class="result" id="result"></div>
-  <div id="correction" class="correction" style="display:none;"></div>
+<h1>Quiz de calcul mental</h1>
 
-  <script>
-    const FACTOR = 1.77 * 8;
-    let current = { type: null, params: {}, rawAnswer: 0, roundedAnswer: 0 };
+<!-- Sélection des types de questions -->
+<div style="margin-bottom: 15px;">
+  <label><input type="checkbox" id="type1" checked> Ekelund</label><br>
+  <label><input type="checkbox" id="type2" checked> Croisement</label><br>
+  <label><input type="checkbox" id="type3" checked> Distance à la route</label><br>
+  <label><input type="checkbox" id="type4" checked> Cadencement</label>
+</div>
 
-    function degToRad(deg){ return deg * Math.PI / 180; }
-    function randomGIS(){ let v; do { v=Math.floor(Math.random()*360); } while(v===1); return v; }
-    function randomW(){ const p=[-3,-2,-1,1,2,3]; return p[Math.floor(Math.random()*p.length)]; }
-    function randomDistance(){ const min=1000,max=15000,count=Math.floor((max-min)/500)+1; return min+500*Math.floor(Math.random()*count); }
-    function randomGisement180(){ return 5*Math.floor(Math.random()*37); }
-    function roundTo500(val){ return Math.round(val/500)*500; }
+<!-- Sélection des bateaux pour Cadencement -->
+<div id="bateaux-selection" style="margin-bottom:15px;">
+  <strong>Bâtiments pour Cadencement :</strong><br>
+  <label><input type="checkbox" class="bateau" value="Commerce" checked> Commerce</label><br>
+  <label><input type="checkbox" class="bateau" value="Guerre" checked> Guerre</label><br>
+  <label><input type="checkbox" class="bateau" value="NGV" checked> NGV</label><br>
+  <label><input type="checkbox" class="bateau" value="Bâtiment lent" checked> Bâtiment lent</label><br>
+  <label><input type="checkbox" class="bateau" value="Avant d'un pêcheur" checked> Avant d'un pêcheur</label><br>
+  <label><input type="checkbox" class="bateau" value="Arrière d'un pêcheur" checked> Arrière d'un pêcheur</label>
+</div>
 
-    function newQuestion(){
-      document.getElementById("result").textContent = "";
-      document.getElementById("correction").style.display = "none";
-      document.getElementById("correction").innerHTML = "";
-      document.getElementById("answer").value = "";
-      document.getElementById("type-label").textContent = "";
+<div class="type-label" id="type-label"></div>
+<div class="question" id="question"></div>
 
-      let valid=false, type, params, raw, rounded;
-      while(!valid){
-        type = Math.random()<0.33 ? 3 : (Math.random()<0.5 ? 1 : 2);
-        if(type===1){
-          const g1=randomGIS(), g2=randomGIS();
-          let w1=randomW(), w2; do{ w2=randomW(); } while(w2===w1);
-          const sin1=Math.sin(degToRad(g1)), sin2=Math.sin(degToRad(g2));
-          const numerator = FACTOR*(Math.abs(sin1) + Math.abs(sin2));
-          const denominator = w2-w1;
-          raw = numerator/denominator;
-          rounded = Math.round(raw);
-          if(rounded>=1 && rounded<=30) valid=true;
-          params={g1,g2,w1,w2};
-        } else if(type===2){
-          const g=randomGIS(), w=randomW();
-          const sinG=Math.sin(degToRad(g));
-          raw = FACTOR*sinG/w;
-          rounded = Math.round(raw);
-          if(rounded>=1 && rounded<=30) valid=true;
-          params={g,w};
-        } else{
-          const d=randomDistance(), incl=randomGisement180();
-          raw = d*Math.sin(degToRad(incl));
-          rounded = roundTo500(raw);
-          valid=true;
-          params={d,incl};
-        }
+<!-- Champ de saisie -->
+<div id="answer-container">
+  <input type="number" id="answer-min" placeholder="Minutes" min="0"> :
+  <input type="number" id="answer-sec" placeholder="Secondes" min="0" max="59">
+</div>
+<input type="number" id="answer" placeholder="Votre réponse en minutes (ex: 12.5 pour 12'30&quot;)"><br>
+
+<button onclick="checkAnswer()">Vérifier</button>
+<button onclick="newQuestion()">Nouvelle question</button>
+<button onclick="showCorrection()">Afficher correction</button>
+<div class="result" id="result"></div>
+<div id="correction" class="correction" style="display:none;"></div>
+
+<script>
+const FACTOR = 1.77 * 8;
+let current = { type: null, params: {}, rawAnswer: 0 };
+
+// Tableau des bateaux (DS en m, taux rapprochement en m/min)
+const bateaux = {
+  "Commerce": {DS:2000, taux:1000},
+  "Guerre": {DS:2400, taux:1200},
+  "NGV": {DS:3000, taux:1500},
+  "Bâtiment lent": {DS:1200, taux:600},
+  "Avant d'un pêcheur": {DS:1500, taux:600},
+  "Arrière d'un pêcheur": {DS:4000, taux:600}
+};
+
+function degToRad(deg){ return deg * Math.PI / 180; }
+function randomGIS(){ let v; do { v=Math.floor(Math.random()*360); } while(v===1); return v; }
+function randomW(){ const p=[-3,-2,-1,1,2,3]; return p[Math.floor(Math.random()*p.length)]; }
+function randomDistance(){ const min=1000,max=15000,count=Math.floor((max-min)/500)+1; return min+500*Math.floor(Math.random()*count); }
+function randomGisement180(){ return 5*Math.floor(Math.random()*37); }
+
+function getSelectedTypes() {
+  const types = [];
+  if (document.getElementById("type1").checked) types.push(1);
+  if (document.getElementById("type2").checked) types.push(2);
+  if (document.getElementById("type3").checked) types.push(3);
+  if (document.getElementById("type4").checked) types.push(4);
+  return types;
+}
+
+function getSelectedBateaux() {
+  const checkboxes = document.querySelectorAll(".bateau");
+  let selected = [];
+  checkboxes.forEach(cb => { if(cb.checked) selected.push(cb.value); });
+  return selected;
+}
+
+function newQuestion(){
+  const resultDiv=document.getElementById("result");
+  const cDiv=document.getElementById("correction");
+  resultDiv.textContent = "";
+  cDiv.style.display = "none";
+  cDiv.innerHTML = "";
+  document.getElementById("answer").value = "";
+  document.getElementById("answer-min").value = "";
+  document.getElementById("answer-sec").value = "";
+  document.getElementById("answer").style.display = "inline-block";
+
+  document.getElementById("type-label").textContent = "";
+  const availableTypes = getSelectedTypes();
+  if(availableTypes.length===0){ 
+    resultDiv.textContent="❌ Veuillez sélectionner au moins un type de question."; 
+    resultDiv.style.color="red"; 
+    return; 
+  }
+
+  let valid=false, type, params, raw;
+  while(!valid){
+    type = availableTypes[Math.floor(Math.random()*availableTypes.length)];
+    if(type===1){
+      const g1=randomGIS(), g2=randomGIS();
+      let w1=randomW(), w2; do{ w2=randomW(); } while(w2===w1);
+      const sin1=Math.sin(degToRad(g1)), sin2=Math.sin(degToRad(g2));
+      const numerator = FACTOR*(Math.abs(sin1) + Math.abs(sin2));
+      const denominator = w2-w1;
+      raw = Math.abs(numerator/denominator);
+      raw = Math.round(raw);
+      valid=true;
+      params={g1,g2,w1,w2};
+    } else if(type===2){
+      const g=randomGIS(), w=randomW();
+      const sinG=Math.sin(degToRad(g));
+      raw = Math.abs(FACTOR*sinG/w);
+      raw = Math.round(raw);
+      valid=true;
+      params={g,w};
+    } else if(type===3){
+      const d=randomDistance(), incl=randomGisement180();
+      raw = Math.abs(d*Math.sin(degToRad(incl)));
+      raw = Math.round(raw/500)*500;
+      valid=true;
+      params={d,incl};
+    } else if(type===4){
+      const selectedBateaux = getSelectedBateaux();
+      if(selectedBateaux.length===0){ 
+        resultDiv.textContent="❌ Veuillez sélectionner au moins un bateau pour le cadencement."; 
+        resultDiv.style.color="red";
+        return; 
       }
-
-      current = {type, params, rawAnswer: raw, roundedAnswer: rounded};
-      const typeLabel = document.getElementById("type-label");
-      const questionDiv = document.getElementById("question");
-
-      if(type===1){
-        typeLabel.textContent = "Ekelund (arrondi à 1 km)";
-        const {g1,g2,w1,w2}=params;
-        questionDiv.textContent = `g1=${g1}, g2=${g2}, w1=${w1}, w2=${w2}`;
-      } else if(type===2){
-        typeLabel.textContent = "Croisement (arrondi à 1 km)";
-        const {g,w}=params;
-        questionDiv.textContent = `g=${g}, w=${w}`;
-      } else{
-        typeLabel.textContent = "Distance à la route (arrondi à 500 m)";
-        const {d,incl}=params;
-        questionDiv.textContent = `d=${d}, incl=${incl}`;
-      }
+      const bateau = selectedBateaux[Math.floor(Math.random()*selectedBateaux.length)];
+      const DS = bateaux[bateau].DS;
+      const taux = bateaux[bateau].taux;
+      const minDistance = 12000;
+      const distanceInit = minDistance + 100 * Math.floor(Math.random() * Math.floor((DS - minDistance)/100));
+      raw = (distanceInit - DS)/taux;
+      valid=true;
+      params={bateau, distanceInit, DS, taux};
     }
+  }
 
-    function checkAnswer(){
-      const ansField=document.getElementById("answer").value;
-      const resultDiv=document.getElementById("result");
-      if(ansField===""){ resultDiv.textContent="Veuillez entrer une valeur."; resultDiv.style.color="red"; return; }
-      const userAnswer=parseInt(ansField,10);
-      if(isNaN(userAnswer)){ resultDiv.textContent="Valeur invalide."; resultDiv.style.color="red"; return; }
+  current={type, params, rawAnswer: raw};
 
-      const correct=current.roundedAnswer;
-      let isCorrect=false;
-      if(current.type===3){ isCorrect = (userAnswer===correct); }
-      else { isCorrect = (Math.abs(userAnswer-correct)<1); }
+  const typeLabel = document.getElementById("type-label");
+  const questionDiv = document.getElementById("question");
+  const answerContainer = document.getElementById("answer-container");
 
-      resultDiv.style.color = isCorrect?"green":"red";
-      resultDiv.textContent = isCorrect? `✅ Correct !` : `❌ Faux.`;
-    }
+  if(type===1){
+    typeLabel.textContent = "Ekelund (arrondi à 1 km)";
+    const {g1,g2,w1,w2}=params;
+    questionDiv.textContent = `g1=${g1}, g2=${g2}, w1=${w1}, w2=${w2}`;
+    document.getElementById("answer").style.display="inline-block";
+    answerContainer.style.display="none";
+  } else if(type===2){
+    typeLabel.textContent = "Croisement (arrondi à 1 km)";
+    const {g,w}=params;
+    questionDiv.textContent = `g=${g}, w=${w}`;
+    document.getElementById("answer").style.display="inline-block";
+    answerContainer.style.display="none";
+  } else if(type===3){
+    typeLabel.textContent = "Distance à la route (arrondi à 500 m)";
+    const {d,incl}=params;
+    questionDiv.textContent = `d=${d}, incl=${incl}`;
+    document.getElementById("answer").style.display="inline-block";
+    answerContainer.style.display="none";
+  } else if(type===4){
+    typeLabel.textContent = "Cadencement (minutes et secondes)";
+    const {bateau, distanceInit} = params;
+    questionDiv.textContent = `Bateau: ${bateau}, distance initiale: ${distanceInit.toFixed(0)} m`;
+    document.getElementById("answer").style.display="none";
+    answerContainer.style.display="inline-block";
+  }
+}
 
-    function showCorrection(){
-      const cDiv=document.getElementById("correction");
-      cDiv.style.display="block"; 
-      cDiv.innerHTML="";
-      if(!current.type){ cDiv.innerHTML="<div class='small'>Aucune question générée.</div>"; return; }
+function checkAnswer() {
+  const resultDiv = document.getElementById("result");
+  let userAnswer;
 
-      if(current.type===1){
-        const {g1,g2,w1,w2}=current.params;
-        const sin1=Math.sin(degToRad(g1)), sin2=Math.sin(degToRad(g2));
-        const numerator = FACTOR*(Math.abs(sin1) + Math.abs(sin2));
-        const denominator = w2-w1;
-        cDiv.innerHTML=`g1=${g1}, g2=${g2}, w1=${w1}, w2=${w2}<br>
-        Numérateur=${numerator.toFixed(6)}, Dénominateur=${denominator}<br>
-        Résultat exact=${current.rawAnswer.toFixed(6)}, arrondi=${current.roundedAnswer}`;
-      } else if(current.type===2){
-        const {g,w}=current.params;
-        const sinG=Math.sin(degToRad(g));
-        cDiv.innerHTML=`g=${g}, w=${w}<br>
-        sin(${g})=${sinG.toFixed(6)}<br>
-        Résultat exact=${current.rawAnswer.toFixed(6)}, arrondi=${current.roundedAnswer}`;
-      } else{
-        const {d,incl}=current.params;
-        const sinG=Math.sin(degToRad(incl));
-        cDiv.innerHTML=`d=${d}, incl=${incl}<br>
-        sin(${incl})=${sinG.toFixed(6)}<br>
-        Résultat exact=${current.rawAnswer.toFixed(6)}, arrondi à 500 m=${current.roundedAnswer}`;
-      }
-    }
+  if(current.type === 4){
+    const min = parseInt(document.getElementById("answer-min").value) || 0;
+    const sec = parseInt(document.getElementById("answer-sec").value) || 0;
+    userAnswer = min + sec/60;
+  } else {
+    userAnswer = parseFloat(document.getElementById("answer").value.replace(",", "."));
+  }
 
-    // Générer la première question au chargement
-    newQuestion();
-  </script>
+  if (isNaN(userAnswer)) {
+    resultDiv.textContent = "❌ Veuillez entrer un nombre valide.";
+    resultDiv.style.color = "red";
+    return;
+  }
+
+  let tolerance = current.type === 3 ? 0.5 : 1;
+  if(current.type===4) tolerance = 0.05;
+
+  if(Math.abs(userAnswer - current.rawAnswer) <= tolerance){
+    resultDiv.textContent = "✅ Correct !";
+    resultDiv.style.color = "green";
+  } else {
+    resultDiv.textContent = "❌ Incorrect.";
+    resultDiv.style.color = "red";
+  }
+}
+
+
+function showCorrection() {
+  const cDiv = document.getElementById("correction");
+  let html = "";
+
+  // Fonction pour générer une fraction posée
+  function fractionHTML(numerateur, denominateur) {
+    return `<div style="display:inline-block; text-align:center; line-height:1.2; margin:5px 0;">
+              <div>${numerateur}</div>
+              <div style="border-top:1px solid #000;">${denominateur}</div>
+            </div>`;
+  }
+
+  if (current.type === 1) {
+    const { g1, g2, w1, w2 } = current.params;
+    const term1 = Math.abs((8 * Math.sin(degToRad(g1))).toFixed(1));
+    const term2 = Math.abs((8 * Math.sin(degToRad(g2))).toFixed(1));
+    const numerateur = `${term1} + ${term2}`;
+    const denom = `(${w2}) - (${w1})`;
+    const resultat = current.rawAnswer;
+    html = `<strong>Ekelund</strong><br>
+            Calcul: 1,77 × ${fractionHTML(numerateur, denom)} ≈ ${resultat} km`;
+  } else if (current.type === 2) {
+    const { g, w } = current.params;
+    const numerateur = 8*Math.abs(Math.sin(degToRad(g))).toFixed(1);
+    const denom = Math.abs(w);
+    const resultat = current.rawAnswer;
+    html = `<strong>Croisement</strong><br>
+            Calcul: 1,77 × ${fractionHTML(numerateur, denom)} ≈ ${resultat} km`;
+  } else if (current.type === 3) {
+    const { d, incl } = current.params;
+    const sinIncl = Math.sin(degToRad(incl)).toFixed(1);
+    const produit = current.rawAnswer;
+    html = `<strong>Distance à la route</strong><br>
+            Formule: distance * sin(incl)<br>
+            Calcul: ${d} * ${sinIncl} ≈ ${produit} m`;
+  } else if (current.type === 4) {
+    const { bateau, distanceInit, DS, taux } = current.params;
+    const minutes = Math.floor(current.rawAnswer);
+    const seconds = Math.round((current.rawAnswer - minutes)*60);
+    html = `<strong>Cadencement</strong><br>
+            DS = ${DS}<br>
+            TR = ${taux}<br>
+            Cadencement = ${minutes} min ${seconds} sec`;
+  }
+
+  cDiv.innerHTML = html;
+  cDiv.style.display = "block";
+}
+
+
+
+// Initialisation
+newQuestion();
+</script>
+
 </body>
 </html>
-
